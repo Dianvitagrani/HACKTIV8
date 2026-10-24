@@ -45,18 +45,27 @@ if "doctor_note" not in st.session_state:
 
 # ── AI helper functions ───────────────────────────────────────────────────────
 
+def get_google_api_key() -> str:
+    """Baca GOOGLE_API_KEY dari env var (lokal) atau Streamlit secrets (cloud)."""
+    key = os.getenv("GOOGLE_API_KEY", "")
+    if not key:
+        try:
+            key = st.secrets["GOOGLE_API_KEY"]
+        except (KeyError, FileNotFoundError):
+            key = ""
+    return key
+
+
 def encode_image_base64(image_bytes: bytes) -> str:
     return base64.b64encode(image_bytes).decode("utf-8")
 
 
 def analyze_image_with_ai(image_bytes: bytes, doctor_note: str) -> str:
     """
-    Kirim gambar + catatan dokter ke LLM multimodal.
-    Mendukung: OpenAI GPT-4o · Google Gemini · placeholder offline.
-    Atur environment variable OPENAI_API_KEY atau GOOGLE_API_KEY.
+    Kirim gambar + catatan dokter ke Gemini multimodal.
+    Atur GOOGLE_API_KEY di environment variable atau Streamlit secrets.
     """
-    openai_key = os.getenv("OPENAI_API_KEY", "")
-    google_key = os.getenv("GOOGLE_API_KEY", "")
+    google_key = get_google_api_key()
 
     system_prompt = (
         "Kamu adalah asisten medis edukatif yang bertugas menjelaskan citra medis "
@@ -77,54 +86,39 @@ def analyze_image_with_ai(image_bytes: bytes, doctor_note: str) -> str:
             f"\n\nCatatan tambahan dari dokter yang perlu dirangkum ulang:\n\"{doctor_note.strip()}\""
         )
 
-    # ── OpenAI GPT-4o ─────────────────────────────────────────────────────────
-    if openai_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=openai_key)
-            b64 = encode_image_base64(image_bytes)
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
-                            },
-                        ],
-                    },
-                ],
-                max_tokens=700,
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"⚠️ OpenAI error: {e}"
-
     # ── Google Gemini ─────────────────────────────────────────────────────────
     if google_key:
+        # Coba google-genai (SDK baru) dulu, fallback ke google-generativeai (lama)
         try:
-            import google.generativeai as genai
-            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            from google import genai
+            from google.genai import types
+            client = genai.Client(api_key=google_key)
+            img = Image.open(io.BytesIO(image_bytes))
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=[
+                    types.Part.from_text(text=system_prompt + "\n\n" + user_prompt),
+                    img,
+                ],
+            )
+            return response.text
+        except ImportError:
+            pass  # library baru tidak ada, coba yang lama
+        except Exception as e:
+            return f"⚠️ Gemini error: {e}"
 
-            genai.configure(api_key=google_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
+        try:
+            import google.generativeai as genai_old
+            genai_old.configure(api_key=google_key)
+            model = genai_old.GenerativeModel("gemini-1.5-flash")
             img = Image.open(io.BytesIO(image_bytes))
             full_prompt = system_prompt + "\n\n" + user_prompt
-            response = model.generate_content(
-                [full_prompt, img],
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
-                },
-            )
+            response = model.generate_content([full_prompt, img])
             return response.text
         except Exception as e:
             return f"⚠️ Gemini error: {e}"
 
-    # ── Placeholder (offline) ─────────────────────────────────────────────────
+    # ── Placeholder (offline / belum ada API key) ─────────────────────────────
     note_section = ""
     if doctor_note.strip():
         note_section = (
@@ -148,15 +142,14 @@ def analyze_image_with_ai(image_bytes: bytes, doctor_note: str) -> str:
         "- Selalu diskusikan hasil citra ini langsung dengan dokter Anda.\n"
         "- Jangan membuat keputusan medis hanya berdasarkan penjelasan AI.\n"
         + note_section
-        + "\n\n> ⚙️ *Untuk analisis nyata, tambahkan `OPENAI_API_KEY` atau `GOOGLE_API_KEY` "
-        "ke environment variable atau file `.env`.*"
+        + "\n\n> ⚙️ *Untuk analisis nyata, tambahkan `GOOGLE_API_KEY` "
+        "ke environment variable atau Streamlit Secrets.*"
     )
 
 
 def chat_with_ai(question: str, analysis_context: str, history: list, image_bytes: bytes) -> str:
     """Lanjutan Q&A berdasarkan konteks analisis."""
-    openai_key = os.getenv("OPENAI_API_KEY", "")
-    google_key = os.getenv("GOOGLE_API_KEY", "")
+    google_key = get_google_api_key()
 
     system_prompt = (
         "Kamu adalah asisten medis edukatif. Kamu sudah menganalisis sebuah citra medis "
@@ -165,32 +158,34 @@ def chat_with_ai(question: str, analysis_context: str, history: list, image_byte
         f"Konteks analisis sebelumnya:\n{analysis_context}"
     )
 
-    if openai_key:
+    if google_key:
+        history_text = "\n".join(
+            f"{'Pasien' if h['role']=='user' else 'AI'}: {h['content']}"
+            for h in history[-6:]
+        )
+        full_prompt = (
+            f"{system_prompt}\n\nRiwayat percakapan:\n{history_text}\n\nPasien: {question}"
+        )
+
+        # Coba google-genai (SDK baru) dulu, fallback ke google-generativeai (lama)
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=openai_key)
-            messages = [{"role": "system", "content": system_prompt}]
-            for h in history[-6:]:  # batasi konteks 6 pesan terakhir
-                messages.append({"role": h["role"], "content": h["content"]})
-            messages.append({"role": "user", "content": question})
-            response = client.chat.completions.create(
-                model="gpt-4o", messages=messages, max_tokens=400
+            from google import genai
+            client = genai.Client(api_key=google_key)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=full_prompt,
             )
-            return response.choices[0].message.content
+            return response.text
+        except ImportError:
+            pass
         except Exception as e:
             return f"⚠️ Error: {e}"
 
-    if google_key:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=google_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            history_text = "\n".join(
-                f"{'Pasien' if h['role']=='user' else 'AI'}: {h['content']}"
-                for h in history[-6:]
-            )
-            full = f"{system_prompt}\n\nRiwayat percakapan:\n{history_text}\n\nPasien: {question}"
-            response = model.generate_content(full)
+            import google.generativeai as genai_old
+            genai_old.configure(api_key=google_key)
+            model = genai_old.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(full_prompt)
             return response.text
         except Exception as e:
             return f"⚠️ Error: {e}"
@@ -255,6 +250,13 @@ st.markdown("<hr>", unsafe_allow_html=True)
 
 # ── Step 3: Analyze ───────────────────────────────────────────────────────────
 st.markdown('<p class="section-title">3 · Analisis AI</p>', unsafe_allow_html=True)
+
+# Debug: tampilkan status API key (bisa dihapus setelah konfirmasi berjalan)
+_key_check = get_google_api_key()
+if _key_check:
+    st.success(f"✅ GOOGLE_API_KEY terbaca ({len(_key_check)} karakter)")
+else:
+    st.warning("⚠️ GOOGLE_API_KEY **belum terdeteksi** — akan berjalan dalam mode demo.")
 
 if st.button("🔬 Analisis Sekarang", use_container_width=True, type="primary"):
     if not st.session_state.image_bytes:
