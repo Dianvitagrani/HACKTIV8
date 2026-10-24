@@ -1,0 +1,5 @@
+streamlit>=1.35.0
+Pillow>=10.0.0
+# Pilih salah satu (atau keduanya) sesuai API key yang kamu punya:
+# openai>=1.30.0
+# google-generativeai>=0.7.0
