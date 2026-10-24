@@ -95,7 +95,7 @@ def analyze_image_with_ai(image_bytes: bytes, doctor_note: str) -> str:
             client = genai.Client(api_key=google_key)
             img = Image.open(io.BytesIO(image_bytes))
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=[
                     types.Part.from_text(text=system_prompt + "\n\n" + user_prompt),
                     img,
@@ -172,7 +172,7 @@ def chat_with_ai(question: str, analysis_context: str, history: list, image_byte
             from google import genai
             client = genai.Client(api_key=google_key)
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=full_prompt,
             )
             return response.text
