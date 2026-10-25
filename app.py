@@ -79,7 +79,7 @@ def _gemini(parts: list = None, text: str = "") -> str:
         for p in (parts or []):
             contents.append(types.Part.from_text(text=p) if isinstance(p, str) else p)
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite-preview-06-17",
+            model="gemini-3.5-flash-lite",
             contents=contents or text,
         )
         return response.text
@@ -91,7 +91,7 @@ def _gemini(parts: list = None, text: str = "") -> str:
     try:
         import google.generativeai as g
         g.configure(api_key=key)
-        m = g.GenerativeModel("gemini-1.5-flash")
+        m = g.GenerativeModel("gemini-3.5-flash-lite")
         response = m.generate_content(parts if parts else text)
         return response.text
     except Exception as e:
