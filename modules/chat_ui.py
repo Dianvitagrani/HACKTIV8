@@ -229,9 +229,9 @@ def _render_api_key_setup():
         )
         model_choice = st.selectbox(
             "Model",
-            options=["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.1-pro"],
+            options=["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.1-pro", "gemini-2.5-flash"],
             index=0,
-            help="gemini-3.5-flash-lite = paling hemat & cepat. gemini-3.1-pro = paling pintar.",
+            help="gemini-3.5-flash-lite = tercepat & terhemat (default). gemini-3.6-flash = lebih pintar.",
         )
         submitted = st.form_submit_button("🚀 Mulai Chat", type="primary", use_container_width=True)
 
@@ -253,9 +253,9 @@ def _render_api_key_setup():
 4. Copy key dan paste di atas
 
 **Estimasi biaya per sesi:**
-- `gemini-3.5-flash-lite` → Gratis (rate-limited) atau sangat murah
-- `gemini-3.6-flash` → Gratis tier tersedia, lebih pintar
-- `gemini-3.1-pro` → Berbayar, paling canggih
+- `gemini-3.5-flash-lite` → Tercepat & terhemat, terbaru ✅ (default)
+- `gemini-3.6-flash` → All-around, lebih pintar
+- `gemini-3.1-pro` → Advanced reasoning, terkuat
 
 **Alternatif:** Simpan key di `.streamlit/secrets.toml`:
 ```toml
