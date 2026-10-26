@@ -146,26 +146,62 @@ import os
 
 
 def _get_api_key() -> str | None:
-    # Priority: session state → Streamlit secrets → env var
+    # 1. Already cached in session
     if st.session_state.get("gemini_api_key"):
         return st.session_state["gemini_api_key"]
-    # Streamlit Cloud secrets (bracket access is the reliable way)
+
+    # 2. Streamlit secrets — try every common pattern
+    key = None
     try:
+        # Direct key (most common: GEMINI_API_KEY = "AIza...")
         key = st.secrets["GEMINI_API_KEY"]
-        if key:
-            st.session_state["gemini_api_key"] = key
-            return key
-    except (KeyError, FileNotFoundError):
+    except Exception:
         pass
-    # Fallback: environment variable (local dev)
+    if not key:
+        try:
+            # Some users wrap it: [gemini]\napi_key = "AIza..."
+            key = st.secrets["gemini"]["api_key"]
+        except Exception:
+            pass
+    if not key:
+        try:
+            # Lowercase variant
+            key = st.secrets["gemini_api_key"]
+        except Exception:
+            pass
+
+    if key:
+        st.session_state["gemini_api_key"] = key
+        return key
+
+    # 3. Environment variable (local dev / Docker)
     env_key = os.environ.get("GEMINI_API_KEY", "")
     if env_key:
         st.session_state["gemini_api_key"] = env_key
         return env_key
+
     return None
 
 
 def _render_api_key_setup():
+    # ── Last-chance: scan ALL secret keys for anything that looks like a Gemini key ──
+    found_key = None
+    try:
+        for secret_key in st.secrets:
+            val = str(st.secrets[secret_key])
+            if val.startswith("AIza"):
+                found_key = val
+                break
+    except Exception:
+        pass
+
+    if found_key:
+        # Secret exists but wasn't matched by name — use it and skip the form
+        st.session_state["gemini_api_key"] = found_key
+        st.rerun()
+        return
+
+    # ── No secret found — show manual input form ─────────────────────────────────
     st.markdown(
         """<div style='max-width:560px;margin:0 auto'>
         <div style='text-align:center;padding:32px 0 16px'>
@@ -175,9 +211,9 @@ def _render_api_key_setup():
           </div>
           <div style='font-size:14px;color:#64748B;line-height:1.7'>
             Holiday Planner AI menggunakan <b>Google Gemini</b> untuk memberikan
-            rekomendasi cerdas ke <b>seluruh destinasi di dunia</b> — bukan hanya
-            kota yang ada di database.<br><br>
-            Masukkan Gemini API key kamu untuk mulai.
+            rekomendasi cerdas ke <b>seluruh destinasi di dunia</b>.<br><br>
+            Masukkan Gemini API key kamu untuk mulai, atau simpan di
+            <b>Streamlit Secrets</b> agar tidak perlu dimasukkan ulang.
           </div>
         </div>
         </div>""",
