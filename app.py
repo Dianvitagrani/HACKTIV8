@@ -6,9 +6,6 @@ Main Streamlit Application
 import sys
 import os
 
-# Ensure `modules/` is importable regardless of where Streamlit runs app.py from.
-# On Streamlit Cloud: app.py lives at repo root, modules/ is a sibling directory.
-# Locally: same layout. This covers both cases cleanly.
 _here = os.path.dirname(os.path.abspath(__file__))
 if _here not in sys.path:
     sys.path.insert(0, _here)
@@ -107,9 +104,6 @@ def _init_state():
         "voice_enabled": True,
         "voice_auto_read": False,
         "current_day": 1,
-        "chat_messages": [],
-        "gemini_api_key": "",
-        "ai_model": "gemini-3.5-flash-lite",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -131,7 +125,6 @@ with st.sidebar:
 
     NAV = [
         ("🏠", "home",       "Beranda"),
-        ("💬", "ai_chat",    "AI Assistant ✨"),
         ("🗓️", "itinerary",  "Susun Itinerary"),
         ("⏰", "departure",  "Manajemen Keberangkatan"),
         ("🚨", "emergency",  "Backup Darurat"),
@@ -181,7 +174,6 @@ with st.sidebar:
 # ─── Page Header ────────────────────────────────────────────────────────────────
 MODULE_TITLES = {
     "home":       ("✈️", "Holiday Planner & Smart Assistant", "Rencanakan liburanmu dari A sampai Z"),
-    "ai_chat":    ("💬", "AI Assistant", "Chat cerdas untuk itinerary, bandara, backup, & hotel — ke seluruh dunia"),
     "itinerary":  ("🗓️", "Susun Itinerary Cerdas", "Jadwal lengkap hari per hari dengan durasi & transportasi"),
     "departure":  ("⏰", "Manajemen Keberangkatan", "H-1 & Hari-H — analisis waktu bandara real-time"),
     "emergency":  ("🚨", "Backup Darurat & Dynamic Plan", "Destinasi tutup? Langsung kami carikan penggantinya!"),
@@ -205,63 +197,48 @@ st.divider()
 if st.session_state.active_module == "home":
     st.markdown(CARD_CSS, unsafe_allow_html=True)
 
-    # Hero — AI-first
     st.markdown(
-        """<div style='background:linear-gradient(135deg,#1E3A8A,#7C3AED);
-            border-radius:18px;padding:28px 32px;margin-bottom:20px;color:white'>
-        <div style='font-size:22px;font-weight:800;margin-bottom:10px'>
-            👋 Halo, Traveler! Meet your AI Travel Companion ✨
+        """<div style='background:linear-gradient(135deg,#EFF6FF,#F5F3FF);
+            border:1px solid #C7D2FE;border-radius:16px;padding:24px 28px;margin-bottom:20px'>
+        <div style='font-size:20px;font-weight:700;color:#1E3A8A;margin-bottom:8px'>
+            👋 Halo, Traveler!
         </div>
-        <div style='font-size:15px;line-height:1.8;opacity:.92'>
-            <b>Holiday Planner AI</b> siap membantu merencanakan perjalananmu ke
-            <b>seluruh penjuru dunia</b> — dari Bali hingga Barcelona, Tokyo hingga Tunisia.<br>
-            Cukup ketik atau ucapkan apa yang kamu butuhkan. Semua dalam satu chat.
+        <div style='font-size:15px;color:#374151;line-height:1.7'>
+            <b>Holiday Planner</b> adalah asisten perjalanan cerdas yang menemanimu dari
+            <b>sebelum berangkat</b> hingga <b>kamu kembali ke rumah</b>.<br>
+            Didukung oleh penjadwalan otomatis, analisis waktu bandara, dan sistem backup darurat.
         </div>
         </div>""",
         unsafe_allow_html=True,
     )
 
-    # Primary CTA — AI Chat
-    if st.button(
-        "💬 Mulai Chat dengan AI Assistant →",
-        type="primary",
-        use_container_width=True,
-        key="home_ai_cta",
-    ):
-        st.session_state.active_module = "ai_chat"
-        st.rerun()
-
-    st.markdown("")
-
     # Feature cards
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     for col, emoji, title_c, desc in [
-        (c1, "💬", "AI Assistant",
-         "Chat natural — tanya apa saja, ke kota mana saja di dunia."),
-        (c2, "🗓️", "Itinerary Cerdas",
-         "Jadwal hari per hari dengan durasi & transportasi."),
-        (c3, "⏰", "Alarm Bandara",
+        (c1, "🗓️", "Itinerary Cerdas",
+         "Jadwal hari per hari dengan durasi kunjungan & rekomendasi transportasi."),
+        (c2, "⏰", "Alarm Bandara",
          "Waktu bangun & berangkat optimal, anti mepet flight."),
-        (c4, "🚨", "Backup Darurat",
+        (c3, "🚨", "Backup Darurat",
          "Destinasi tutup? Langsung dapat alternatif + jadwal baru."),
-        (c5, "🏨", "Penginapan",
-         "Rekomendasi hotel strategis berdasar waktu tempuh ke itinerary."),
+        (c4, "🏨", "Penginapan Strategis",
+         "Rekomendasi hotel berdasarkan waktu tempuh ke setiap destinasi itinerary."),
     ]:
         with col:
             st.markdown(
-                f"""<div class='info-card' style='height:150px'>
-                <div style='font-size:28px;margin-bottom:6px'>{emoji}</div>
-                <div style='font-weight:700;font-size:13px;margin-bottom:4px;color:#0F172A'>{title_c}</div>
+                f"""<div class='info-card' style='height:155px'>
+                <div style='font-size:30px;margin-bottom:8px'>{emoji}</div>
+                <div style='font-weight:700;font-size:14px;margin-bottom:4px;color:#0F172A'>{title_c}</div>
                 <div style='font-size:12px;color:#64748B;line-height:1.5'>{desc}</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
 
-    st.markdown("#### 🚀 Akses Cepat")
+    st.markdown("#### 🚀 Mulai Sekarang")
     col_a, col_b, col_c, col_d = st.columns(4)
     with col_a:
-        if st.button("💬 AI Chat", type="primary", use_container_width=True):
-            st.session_state.active_module = "ai_chat"
+        if st.button("➕ Buat Trip Baru", type="primary", use_container_width=True):
+            st.session_state.active_module = "itinerary"
             st.rerun()
     with col_b:
         if st.button("✈️ Cek Waktu Bandara", use_container_width=True):
@@ -276,7 +253,6 @@ if st.session_state.active_module == "home":
             st.session_state.active_module = "hotel"
             st.rerun()
 
-    # How it works
     st.markdown("#### 📖 Cara Pakai")
     st.markdown(
         """<div class='info-card'>
@@ -306,29 +282,11 @@ if st.session_state.active_module == "home":
         unsafe_allow_html=True,
     )
 
-    # Voice CTA
-    if st.session_state.voice_enabled:
-        st.markdown(
-            """<div class='info-card' style='border-left:4px solid #2563EB'>
-            <span class='badge badge-blue'>🎤 Voice Assistant Aktif</span>
-            <span style='font-size:13px;color:#374151;margin-left:8px'>
-              Pergi ke <b>Pengaturan Suara</b> untuk uji coba input suara & text-to-speech.
-            </span>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-
-# ─── Module: AI CHAT ────────────────────────────────────────────────────────────
-elif st.session_state.active_module == "ai_chat":
-    from modules.chat_ui import render_chat_module
-    render_chat_module()
-
 # ─── Module: ITINERARY ───────────────────────────────────────────────────────────
 elif st.session_state.active_module == "itinerary":
     from modules.itinerary import render_itinerary_module
     render_itinerary_module()
 
-    # Voice input section
     if st.session_state.voice_enabled:
         st.divider()
         with st.expander("🎤 Ucapkan Pertanyaan Seputar Itinerary"):
