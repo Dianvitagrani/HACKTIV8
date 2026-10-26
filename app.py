@@ -3,6 +3,16 @@ Holiday Planner & Smart Assistant
 Main Streamlit Application
 """
 
+import sys
+import os
+
+# Ensure `modules/` is importable regardless of where Streamlit runs app.py from.
+# On Streamlit Cloud: app.py lives at repo root, modules/ is a sibling directory.
+# Locally: same layout. This covers both cases cleanly.
+_here = os.path.dirname(os.path.abspath(__file__))
+if _here not in sys.path:
+    sys.path.insert(0, _here)
+
 import streamlit as st
 from datetime import datetime
 
@@ -99,7 +109,7 @@ def _init_state():
         "current_day": 1,
         "chat_messages": [],
         "gemini_api_key": "",
-        "ai_model": "gemini-3.5-flash-lite",
+        "ai_model": "gemini-2.0-flash-lite",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
