@@ -146,21 +146,22 @@ import os
 
 
 def _get_api_key() -> str | None:
-    # Priority: session state → env var → secrets
+    # Priority: session state → Streamlit secrets → env var
     if st.session_state.get("gemini_api_key"):
         return st.session_state["gemini_api_key"]
+    # Streamlit Cloud secrets (bracket access is the reliable way)
+    try:
+        key = st.secrets["GEMINI_API_KEY"]
+        if key:
+            st.session_state["gemini_api_key"] = key
+            return key
+    except (KeyError, FileNotFoundError):
+        pass
+    # Fallback: environment variable (local dev)
     env_key = os.environ.get("GEMINI_API_KEY", "")
     if env_key:
         st.session_state["gemini_api_key"] = env_key
         return env_key
-    # Check Streamlit secrets
-    try:
-        key = st.secrets.get("GEMINI_API_KEY", "")
-        if key:
-            st.session_state["gemini_api_key"] = key
-            return key
-    except Exception:
-        pass
     return None
 
 
