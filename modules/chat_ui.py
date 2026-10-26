@@ -153,13 +153,13 @@ def _get_api_key() -> str | None:
     # 2. Streamlit secrets — try every common pattern
     key = None
     try:
-        # Direct key (most common: GEMINI_API_KEY = "AIza...")
+        # Direct key (most common: GEMINI_API_KEY = "AQa..." or "AIza...")
         key = st.secrets["GEMINI_API_KEY"]
     except Exception:
         pass
     if not key:
         try:
-            # Some users wrap it: [gemini]\napi_key = "AIza..."
+            # Some users wrap it: [gemini]\napi_key = "AQa..."
             key = st.secrets["gemini"]["api_key"]
         except Exception:
             pass
@@ -189,7 +189,7 @@ def _render_api_key_setup():
     try:
         for secret_key in st.secrets:
             val = str(st.secrets[secret_key])
-            if val.startswith("AIza"):
+            if val.startswith(("AIza", "AQ")):
                 found_key = val
                 break
     except Exception:
@@ -224,7 +224,7 @@ def _render_api_key_setup():
         key_input = st.text_input(
             "Gemini API Key",
             type="password",
-            placeholder="AIza...",
+            placeholder="AQ... atau AIza...",
             help="Dapatkan API key gratis di aistudio.google.com/apikey",
         )
         model_choice = st.selectbox(
@@ -235,14 +235,14 @@ def _render_api_key_setup():
         )
         submitted = st.form_submit_button("🚀 Mulai Chat", type="primary", use_container_width=True)
 
-    if submitted and key_input.strip().startswith("AIza"):
+    if submitted and key_input.strip():
         st.session_state["gemini_api_key"] = key_input.strip()
         st.session_state["ai_model"] = model_choice
         st.success("✅ API Key tersimpan! Memuat asisten...")
         time.sleep(0.8)
         st.rerun()
     elif submitted:
-        st.error("⚠️ API Key tidak valid. Pastikan dimulai dengan 'AIza'.")
+        st.error("⚠️ API Key tidak boleh kosong.")
 
     # Setup instructions
     with st.expander("📖 Cara mendapatkan Gemini API Key (GRATIS)"):
@@ -259,7 +259,7 @@ def _render_api_key_setup():
 
 **Alternatif:** Simpan key di `.streamlit/secrets.toml`:
 ```toml
-GEMINI_API_KEY = "AIza..."
+GEMINI_API_KEY = "AQ..."
 ```
 atau set environment variable `GEMINI_API_KEY`.
         """)
