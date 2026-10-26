@@ -235,7 +235,7 @@ def build_context_message(session_state) -> str:
 def chat_with_ai(
     messages: list,
     api_key: str,
-    model: str = "gemini-2.0-flash-lite",
+    model: str = "gemini-3.5-flash-lite",
     session_state=None,
     stream: bool = True,
 ):
