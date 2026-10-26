@@ -99,7 +99,7 @@ def _init_state():
         "current_day": 1,
         "chat_messages": [],
         "gemini_api_key": "",
-        "ai_model": "gemini-2.0-flash-lite",
+        "ai_model": "gemini-3.5-flash-lite",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
